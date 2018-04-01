@@ -7,6 +7,8 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.social.security.SocialUserDetails;
+import org.springframework.social.security.SocialUserDetailsService;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -21,7 +23,7 @@ import java.util.Collections;
  * @File UserLoginDetailsService
  */
 @Service
-public class UserLoginDetailsService implements UserDetailsService {
+public class UserLoginDetailsService implements UserDetailsService, SocialUserDetailsService {
 
     @Autowired
     private UserRepository userRepository;
@@ -29,9 +31,18 @@ public class UserLoginDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         org.rizki.mufrizal.spring.social.domain.User user = userRepository.findOne(username);
-        if(user == null){
+        if (user == null) {
             throw new UsernameNotFoundException("username not found " + username);
         }
         return new User(user.getUsername(), user.getPassword(), true, true, true, true, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+    }
+
+    @Override
+    public SocialUserDetails loadUserByUserId(String userId) throws UsernameNotFoundException {
+        org.rizki.mufrizal.spring.social.domain.User user = userRepository.findOne(userId);
+        if (user == null) {
+            throw new UsernameNotFoundException("username not found " + userId);
+        }
+        return new SocialUserLoginDetails(user);
     }
 }
