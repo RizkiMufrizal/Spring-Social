@@ -1,7 +1,5 @@
 package org.rizki.mufrizal.spring.social.configuration;
 
-import org.rizki.mufrizal.spring.social.service.FacebookConnectionSignup;
-import org.rizki.mufrizal.spring.social.service.FacebookSignInAdapter;
 import org.rizki.mufrizal.spring.social.service.UserLoginDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -10,10 +8,9 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.social.connect.ConnectionFactoryLocator;
-import org.springframework.social.connect.UsersConnectionRepository;
-import org.springframework.social.connect.mem.InMemoryUsersConnectionRepository;
-import org.springframework.social.connect.web.ProviderSignInController;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.social.security.SpringSocialConfigurer;
 
 /**
  * @Author Rizki Mufrizal <mufrizalrizki@gmail.com>
@@ -29,20 +26,16 @@ import org.springframework.social.connect.web.ProviderSignInController;
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Autowired
-    private UsersConnectionRepository usersConnectionRepository;
-
-    @Autowired
     private UserLoginDetailsService userLoginDetailsService;
 
-    @Autowired
-    private FacebookConnectionSignup facebookConnectionSignup;
-
-    @Autowired
-    private ConnectionFactoryLocator connectionFactoryLocator;
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userLoginDetailsService);
+        auth.userDetailsService(userLoginDetailsService).passwordEncoder(passwordEncoder());
     }
 
     @Override
@@ -50,17 +43,13 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
         http
                 .csrf().disable()
                 .authorizeRequests()
-                .antMatchers("/login*", "/signin/**", "/signup/**").permitAll()
+                .antMatchers("/signup", "/public/**", "/users/*", "/auth/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .formLogin().loginPage("/login").permitAll()
                 .and()
-                .logout();
-    }
-
-    @Bean
-    public ProviderSignInController providerSignInController() {
-        ((InMemoryUsersConnectionRepository) usersConnectionRepository).setConnectionSignUp(facebookConnectionSignup);
-        return new ProviderSignInController(connectionFactoryLocator, usersConnectionRepository, new FacebookSignInAdapter());
+                .logout().deleteCookies("JSESSIONID")
+                .and()
+                .apply(new SpringSocialConfigurer());
     }
 }
